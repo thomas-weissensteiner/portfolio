@@ -552,7 +552,7 @@ clusters %>% .[ , 1:k] %>% chisq.test()
 * Carriers of c.395_396del and c.397_398del have a combination of mucoskeletal and nervous system abnormalities, and sometimes one additional affected organ
 * all c.773A>G and most c.794_796del and  carriers appear to lack multi-organ involvement, showing only central nervous system symptoms only
 
-![](C:\Users\ThomasWeissensteiner\OneDrive\Documents\portfolio\Summarizing_Human_Phenotype_Ontology_terms\Summarizing_Human_Phenotype_Ontology_terms_figs\rank3_euclDist_WardClust)
+![](https://github.com/thomas-weissensteiner/portfolio/blob/main/Summarizing_Human_Phenotype_Ontology_terms/Summarizing_Human_Phenotype_Ontology_terms_figs/rank3_euclDist_WardClust)
 <br> 
 <br>
 
