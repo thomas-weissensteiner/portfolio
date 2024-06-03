@@ -229,7 +229,7 @@ Summarizing HPO terms at the organ system level (termIndex_rank = 3) revealed th
 "Abnormality of vision" was the 10th most frequent diagnosis at termIndex_rank = 5
 
 
-![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_terms/Summarizing_Human_Phenotype_Ontology_terms_figs/rank5_caseNumbers)  
+![](https://github.com/thomas-weissensteiner/portfolio/blob/main/Summarizing_Human_Phenotype_Ontology_terms/Summarizing_Human_Phenotype_Ontology_terms_figs/rank5_caseNumbers)  
 <br>  
 <br>  
 
