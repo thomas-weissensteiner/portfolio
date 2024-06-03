@@ -36,7 +36,7 @@ The HPO is composed of "parent" and subclass "child" terms, arranged in a direct
 
 **Fig. 1. Ancestry of the HPO term in "Cherry red spot of the macula**
 
-![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_terms/Summarizing_Human_Phenotype_Ontology_terms_figs/HPO_cherryRedSpot_ancestry.jpg)
+![](https://github.com/thomas-weissensteiner/portfolio/blob/main/Summarizing_Human_Phenotype_Ontology_terms/Summarizing_Human_Phenotype_Ontology_terms_figs/HPO_cherryRedSpot_ancestry.jpg)
 
 Several options exist for substituting "Cherry red spot of the macula" with HPO terms of lower specificity at index rank shown in red. 
 
