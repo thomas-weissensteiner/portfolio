@@ -223,7 +223,7 @@ newTable %>% colSums() %>% enframe() %>%
 Summarizing HPO terms at the organ system level (termIndex_rank = 3) revealed that the eye is among the third most commonly affected organ
 
 
-![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_terms/Summarizing_Human_Phenotype_Ontology_terms_figs/rank3_caseNumbers)
+![](https://github.com/thomas-weissensteiner/portfolio/blob/main/Summarizing_Human_Phenotype_Ontology_terms/Summarizing_Human_Phenotype_Ontology_terms_figs/rank3_caseNumbers)
 
 
 "Abnormality of vision" was the 10th most frequent diagnosis at termIndex_rank = 5
