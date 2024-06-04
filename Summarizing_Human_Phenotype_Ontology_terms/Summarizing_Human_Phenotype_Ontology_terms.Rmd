@@ -78,6 +78,10 @@ library (ontologyIndex)
 #  Alternative server: http://purl.obolibrary.org/obo/hp.owl
 
 hpo <- get_OBO ("http://purl.obolibrary.org/obo/hp.obo")
+
+## Get example data file
+
+variants_scrambled <- read.delim("https://raw.githubusercontent.com/thomas-weissensteiner/portfolio/main/Summarizing_Human_Phenotype_Ontology_terms/variants_scrambled.csv", quote = "")
 ```
 <br>  
 
@@ -126,8 +130,7 @@ findNode <- function (x, termIndex_rank, excludeBranches) {
 
 ## Read and clean data
 #  Requires a tab but not comma-delimited cvs file
-queryTable <- 
-  read.delim ("variants_scrambled.csv", quote = "") %>%	
+queryTable <- variants_scrambled %>%	
 	  filter (Allele_zygosity == 
 	 		"Homozygous" & !HPO_Terms %in% c(NA, "-1", "")) %>%
 	  select (ID_person, Gender, disease_.other_name., cDna, Protein,
