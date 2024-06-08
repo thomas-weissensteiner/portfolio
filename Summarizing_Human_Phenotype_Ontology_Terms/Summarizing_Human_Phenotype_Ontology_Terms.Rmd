@@ -13,7 +13,7 @@ output:
 **My scripts:**  
 
 * rendered html versions: [Rpubs/thomas-weissensteiner](https://rpubs.com/thomas-weissensteiner)  
-* executable .rmd files and sample input data: www.github.com/thomas-weissensteiner/portfolio/tree/main/  
+* .rmd files with executable code chunks: www.github.com/thomas-weissensteiner/portfolio/tree/main/  
 
 **About myself:** www.linkedin.com/in/ThomasWs-Mopfair
 
@@ -35,7 +35,7 @@ knitr::opts_chunk$set (attr.output='style="max-height: 100px;"')
 ### 1. Motivation and background  
 <br>  
 
-#### 1.1. Summarizing phenotype descriptions at a shared more general level can generate new insights into the manifestations of a disease
+#### 1.1. Summarising phenotype descriptions at a shared more general level can generate new insights into the manifestations of a disease
 
 I wrote this script for a paper describing a rare disease caused by genetic variants of the CLN6 gene (1). One aim of the study was analysing the frequency of various symptoms in the patient population, in order to improve guidance for genetic testing.
 
@@ -47,7 +47,7 @@ The script that I wrote served three purposes:
 2. replacing HPO terms of variable specificity with HPO terms at a defined, more general level
 3. generating publication-ready plots of HPO term frequencies. 
 
-As major result, **_summarizing HPO terms at the organ system level_** revealed that 23 patients had ocular symptoms, making the **_eye the third most often affected organ in CLN6 disease_**. This was hidden by the heterogeneity of the original HPO annotations, and had not been noted in previous publications.  
+As major result, **_summarising HPO terms at the organ system level_** revealed that 23 patients had ocular symptoms, making the **_eye the third most often affected organ in CLN6 disease_**. This was hidden by the heterogeneity of the original HPO annotations, and had not been noted in previous publications.  
 <br>  
 
 #### 1.2. How the script summarises Human Phenotype Ontology terms  
@@ -236,16 +236,21 @@ newTable %>% colSums() %>% enframe() %>%
 	coord_flip()
 
 ```
+
+The plot shows the 10 most frequent HPO terms in the original data, 203 terms with lower frequency were not included. This figure resembles [figure 3](https://media.springernature.com/full/springer-static/image/art%3A10.1186%2Fs13023-022-02288-8/MediaObjects/13023_2022_2288_Fig3_HTML.png) in (1).
 <br>
 <br>  
 
 ##### 3.2.2. Frequency of eye abnormalities was masked by the high specificity and heterogeneity of the original HPO terms used for describing ocular symptoms in the patient records
 
-**Summarizing HPO terms at the organ system level (termIndex_rank = 3) shows that the eye is the third most commonly affected organ**
-![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_Terms_figs/rank3_caseNumbers)
-
+**Summarising HPO terms at the organ system level (termIndex_rank = 3) shows that the eye is the third most commonly affected organ**
+![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_Terms_figs/rank3_caseNumbers)  
+Shown are the 10 most frequent summarised terms, 44 terms with lower frequency were not included. 
+<br>
+<br>
 **"Abnormality of vision" was the 10th most frequent diagnosis at termIndex_rank = 5**
-![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_Terms_figs/rank5_caseNumbers)
+![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_Terms_figs/rank5_caseNumbers)  
+Shown are the 10 most frequent summarised terms, 4 terms with lower frequency were not included.
 <br>  
 <br>  
 
@@ -258,7 +263,7 @@ a. semantic similarity of the phenotypes (including all HPO terms in the origina
 b. associations between genetic variants and individual HPO terms summarised at different levels
 
 The first approach aims to capture the full information content of the patient records by weighting HPO terms by their specificity (3). It has been used, e.g., to identify new candidate genes based on their association with related diseases (5). However, the clinical phenotype characteristic for a group of specific gene variant(s) is not immediately obvious.
-Therefore, I tried a complementary method that tests for association with summarized HPO terms. Here, interpretation of the results should be straightforward. Replacing higher specificity terms with  common ancestors also decreases the number of comparisons, and increases the average size of individual groups. However, this comes with a loss of phenotypic information. Therefore, the term level with the highest statistical power for discriminating specific variant groups might need to be determined experimentally (in a kind of ML way- but I am not statistically astute enough to say how this will affect significance).
+Therefore, I tried a complementary method that tests for association with summarised HPO terms. Here, interpretation of the results should be straightforward. Replacing higher specificity terms with  common ancestors also decreases the number of comparisons, and increases the average size of individual groups. However, this comes with a loss of phenotypic information. Therefore, the term level with the highest statistical power for discriminating specific variant groups might need to be determined experimentally (in a kind of ML way- but I am not statistically astute enough to say how this will affect significance).
 
 The following examples are purely illustrative and do not correspond to results obtained with the actual patient data.  
 <br>  
@@ -282,7 +287,7 @@ Here, phenotypes of patients with variants c.395_396del and c.397_398del cluster
 ```{r Chunk_5, dependson: Chunk_4, fig.dim = c(13,13)}
 # Chunk 5 requires executing Chunk 4 < Chunk 2 < Chunk 1 #
 
-## NOTE: if newList contains summarized HPO terms, run chunck 4 again setting termIndex_rank = 30
+## NOTE: if newList contains summarised HPO terms, run chunck 4 again setting termIndex_rank = 30
 
 ## Generate a heatmap for genetic variants, clustered by disease phenotype displayed by their carriers (semantic similarity of sets of HPO terms)
 
@@ -308,7 +313,7 @@ sim_mat %>%
 <br>  
 <br>
 
-**Alternative heatmap: HPO terms summarized at organ system level, variants ordered according to nucleotide position**  
+**Alternative heatmap: HPO terms summarised at organ system level, variants ordered according to nucleotide position**  
 ![](C:\Users\ThomasWeissensteiner\OneDrive\Documents\portfolio\Summarizing_Human_Phenotype_Ontology_Terms\Summarizing_Human_Phenotype_Ontology_terms_figs\variants_lvl3_simMat_ntPos.jpeg)
 Blue rectangles highlight a group of variants at nucleotide positions 406 - 343 that are associated with similar phenotypes
 <br> 
@@ -573,7 +578,7 @@ clusters %>% .[ , 1:k] %>% chisq.test()
 ```
 <br>  
 
-##### 4.2.2. Variant clustering with HPO terms summarized at organ system abnormality level
+##### 4.2.2. Variant clustering with HPO terms summarised at organ system abnormality level
 
 * Carriers of c.395_396del and c.397_398del have a combination of mucoskeletal and nervous system abnormalities, and sometimes one additional affected organ
 * all c.773A>G and most c.794_796del and  carriers appear to lack multi-organ involvement, showing only central nervous system symptoms only
