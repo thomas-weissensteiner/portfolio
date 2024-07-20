@@ -1665,7 +1665,7 @@ phenotype of each patient (last column “HPO_Terms”) was represented by a
 string of HPO ID numbers, separated by a comma without spaces.<br />
 Data in the example file are for illustration and not the actual data of
 the study (1), except for HPO term frequencies.</p>
-<pre style="max-height: 100px;"><code>##   ID_person Gender disease_.other_name.         cDna Protein
+<pre style="max-height: 110px;"><code>##   ID_person Gender disease_.other_name.         cDna Protein
 ## 1   1062127  FALSE                   NA c.-158_83del     p.?
 ## 2   1064482  FALSE                   NA c.-158_83dup     p.?
 ##   new.published_variant       Type_on_DNA  Coding_Effect Allele_zygosity
@@ -1763,7 +1763,7 @@ newRow &lt;- list (unique (newTerms))
     
 newList &lt;- c (newList, newRow)
 }</code></pre>
-<pre style="max-height: 100px;"><code>## [1] &quot;HP:0001250 Seizure was not summmarised&quot;
+<pre style="max-height: 110px;"><code>## [1] &quot;HP:0001250 Seizure was not summmarised&quot;
 ## [1] &quot;HP:0001257 Spasticity was not summmarised&quot;
 ## [1] &quot;HP:0001260 Dysarthria was not summmarised&quot;
 ## [1] &quot;HP:0001332 Dystonia was not summmarised&quot;
@@ -2448,7 +2448,7 @@ newTable &lt;- newTable %&gt;% column_to_rownames(., &quot;ID_person&quot;)
 write.csv (newTable, paste0 (&quot;HPO.level&quot;, termIndex_rank, &quot;.csv&quot;))
 
 head (newTable)</code></pre>
-<pre style="max-height: 100px;"><code>##         Developmental regression Seizure Ataxia Intellectual disability
+<pre style="max-height: 110px;"><code>##         Developmental regression Seizure Ataxia Intellectual disability
 ## 1062127                        1       1      0                       0
 ## 1064482                        0       1      0                       0
 ## 1071683                        1       0      0                       0
@@ -3196,12 +3196,12 @@ get_similarityTbl &lt;- function(x) {
 
 
 map_df(seq_along(group_variants), get_similarityTbl)</code></pre>
-<pre style="max-height: 100px;"><code>## # A tibble: 3 × 4
+<pre style="max-height: 110px;"><code>## # A tibble: 3 × 4
 ##   Group                      `n(Group)` Similarity `p-value`
 ##   &lt;chr&gt;                           &lt;int&gt;      &lt;dbl&gt;     &lt;dbl&gt;
-## 1 c.395_396del, c.397_398del          8      0.698 0.000350 
+## 1 c.395_396del, c.397_398del          8      0.698 0.000240 
 ## 2 c.773A&gt;G                            3      0.921 0.0000200
-## 3 All                                85      0.515 0.147</code></pre>
+## 3 All                                85      0.515 0.150</code></pre>
 <p><br></p>
 </div>
 </div>
@@ -3362,18 +3362,28 @@ summarised at organ system level:
 <br><br />
 * Frameshift variants c.395_396del and c.397_398del appear to be
 associated with eye abnormalities <br><br />
-<br><br />
-##### 4.2.2. Significance of variant clustering (work in progress)</p>
+<br></p>
+</div>
+<div id="significance-of-variant-clustering-work-in-progress" class="section level5">
+<h5>4.2.2. Significance of variant clustering (work in progress)</h5>
+<p>In the figures above “cutting” the column dendogram branches at
+different heights produces clusters of more or less similar phenotypes.
+The following code chunks analyse whether variants were enriched in any
+of these clusters. Details of the clustering with the most significant
+chi-square statistic are returned. I have not verified whether this is a
+valid approach.</p>
 <pre class="r"><code># Chunk 10 &gt; requires executing Chunk 8 &lt; Chunk 7 &lt; Chunk 2 &lt; Chunk 1) #
 
-## fix chisq error
-## display table in html
+## Generate a list of table showing the number of times each variant is present in different clusters, defined by cutting the dendogram at a height “k”
+## Find dendogram height at which the clustering is most significant and return the corresponding cluster table and chi-square statistics
+## Warning in chisq.test(.) : Chi-squared approximation may be incorrect
 
+clusterTables &lt;- list()
+chisqTests &lt;- list()
+chisqTests_pVal &lt;- c()
 
-## Generate a table showing the number of times each variant is present in different clusters, defined by cutting the dendogram at a height “k”
+for (k in 2:(nrow(queryTable)-1)) {
 
-
-k = 8
 for (i in 1:k) {
     next_cluster &lt;- cutree(rc, k) [hv$colInd] %&gt;%
         {set_names (., queryTable$cDna[hv$colInd])[as.numeric(.)== i]} %&gt;%
@@ -3396,21 +3406,44 @@ mutate (Total = rowSums(.)) %&gt;%
         Expected = apply (., 2, function(x){
                 round(Total*sum(x)/sum(Total), digits = 1)}))
 
-write.csv (clusters, paste0 (&quot;clusters_&quot;, k, &quot;.csv&quot;))
+clusterTables[[k]] &lt;- clusters
+chisqTests[[k]] &lt;- clusters %&gt;% .[ , 1:k] %&gt;% chisq.test()
+chisqTests_pVal &lt;- c(chisqTests_pVal, chisqTests[[k]] %&gt;% .$p.value)
+}
 
-clusters</code></pre>
-<pre style="max-height: 100px;"><code>##              Cluster 1 Cluster 2 Cluster 3 Cluster 4 Cluster 5 Cluster 6
-## c.794_796del         7         3         8         3         3         0
-## c.395_396del         0         0         0         0         0         6
-## c.257A&gt;G             0         2         0         1         2         0
+chisqTests_pVal %&gt;% log() %&gt;% 
+  plot(x=c(2:(nrow(queryTable)-1)), type = &quot;b&quot;, 
+    xlab = &quot;k&quot;, ylab = &quot;Cluster log_p-value&quot;, 
+    main = paste (&quot;Clustering is most significant when cutting the dendogram at a height of k = &quot;,
+      which.min(chisqTests_pVal)+1), 
+    cex.main = 0.9)</code></pre>
+<p><img src="data:image/png;base64,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AQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAYVmXx4Utz+EHgTyRUChGQFFUAQUmhFQBEVAoRkBRVAEFJoRUARFQKEZAUVQBBSa7QO6elYUd0gpPCOg0KwOKP1EEAQUmu0CSj8RBgGFZtuA0k8EQkChWRXQ1SX9RBgEFJpVAaWfCIWAQrMyoP9aFLfehB4I8kRAodkmoJU7oQeCPBFQaFYF9B82/3kaeiTIEgGFZmVA73y42byJ/yX0UJAjAgrNdueBXvImHkEQUGi2C+jHM97EIwQCCs3qj3JeF1xUBAEQUGjW/Cz8eejBID8EFJrtr8a0eRN/8kPo0SA7BBSaHa4Hypt4BEBAodkhoOUJTbyJh2cEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACE/j95POgVFvnTFgAAAABJRU5ErkJggg==" width="672" /></p>
+<pre class="r"><code># Chunk 11 &gt; requires executing Chunk 10 &lt; Chunk 8 &lt; Chunk 7 &lt; Chunk 2 &lt; Chunk 1) #
+
+## Output details for the most significant k level
+
+clusterTables[[which.min(chisqTests_pVal)+1]] %&gt;% 
+  write.csv (., paste0 (&quot;clusters_&quot;, which.min(chisqTests_pVal)+1, &quot;.csv&quot;))
+chisqTests[[which.min(chisqTests_pVal)+1]]
+clusterTables[[which.min(chisqTests_pVal)+1]]</code></pre>
+<pre style="max-height: 110px;"><code>## 
+##  Pearson&#39;s Chi-squared test
+## 
+## data:  .
+## X-squared = 445.08, df = 324, p-value = 8.841e-06
+## 
+##              Cluster 1 Cluster 2 Cluster 3 Cluster 4 Cluster 5 Cluster 6
+## c.794_796del         7         3         8         3         0         3
+## c.395_396del         0         0         0         0         0         0
+## c.257A&gt;G             0         2         0         1         0         2
 ## c.662A&gt;C             1         2         1         0         0         0
 ## c.461_463del         0         1         2         0         0         0
 ## c.476C&gt;T             0         2         1         0         0         0
-## c.773A&gt;G             0         0         0         0         1         0
+## c.773A&gt;G             0         0         0         0         0         1
 ## c.247G&gt;A             1         0         1         0         0         0
 ## c.407G&gt;A             0         0         2         0         0         0
-## c.316dup             0         0         0         0         1         1
-## c.397_398del         0         0         0         0         0         2
+## c.316dup             0         0         0         0         0         1
+## c.397_398del         0         0         0         0         0         0
 ## c.-158_83del         1         0         0         0         0         0
 ## c.177C&gt;G             1         0         0         0         0         0
 ## c.350T&gt;G             1         0         0         0         0         0
@@ -3435,122 +3468,160 @@ clusters</code></pre>
 ## c.164A&gt;C             0         0         0         1         0         0
 ## c.281C&gt;T             0         0         0         1         0         0
 ## c.248A&gt;G             0         0         0         0         1         0
-## c.445C&gt;T             0         0         0         0         1         0
-## c.434A&gt;C             0         0         0         0         0         1
-##              Cluster 7 Cluster 8 Total Expected.Cluster 1 Expected.Cluster 2
-## c.794_796del         0         3    27                4.1                7.6
-## c.395_396del         0         0     6                0.9                1.7
-## c.257A&gt;G             0         0     5                0.8                1.4
-## c.662A&gt;C             0         0     4                0.6                1.1
-## c.461_463del         0         0     3                0.5                0.8
-## c.476C&gt;T             0         0     3                0.5                0.8
-## c.773A&gt;G             2         0     3                0.5                0.8
-## c.247G&gt;A             0         0     2                0.3                0.6
-## c.407G&gt;A             0         0     2                0.3                0.6
-## c.316dup             0         0     2                0.3                0.6
-## c.397_398del         0         0     2                0.3                0.6
-## c.-158_83del         0         0     1                0.2                0.3
-## c.177C&gt;G             0         0     1                0.2                0.3
-## c.350T&gt;G             0         0     1                0.2                0.3
-## c.757_759del         0         0     1                0.2                0.3
-## c.-158_83dup         0         0     1                0.2                0.3
-## c.115C&gt;G             0         0     1                0.2                0.3
-## c.214G&gt;T             0         0     1                0.2                0.3
-## c.379C&gt;T             0         0     1                0.2                0.3
-## c.406C&gt;T             0         0     1                0.2                0.3
-## c.434A&gt;G             0         0     1                0.2                0.3
-## c.486+2T&gt;A           0         0     1                0.2                0.3
-## c.486+2T&gt;C           0         0     1                0.2                0.3
-## c.543-2A&gt;G           0         0     1                0.2                0.3
-## c.587G&gt;T             0         0     1                0.2                0.3
-## c.659A&gt;C             0         0     1                0.2                0.3
-## c.715_717del         0         0     1                0.2                0.3
-## c.765_785del         0         0     1                0.2                0.3
-## c.768C&gt;G             0         0     1                0.2                0.3
-## c.1_11del            0         0     1                0.2                0.3
-## c.144G&gt;A             0         0     1                0.2                0.3
-## c.299T&gt;G             0         0     1                0.2                0.3
-## c.164A&gt;C             0         0     1                0.2                0.3
-## c.281C&gt;T             0         0     1                0.2                0.3
-## c.248A&gt;G             0         0     1                0.2                0.3
-## c.445C&gt;T             0         0     1                0.2                0.3
-## c.434A&gt;C             0         0     1                0.2                0.3
-##              Expected.Cluster 3 Expected.Cluster 4 Expected.Cluster 5
-## c.794_796del                5.7                1.9                2.9
-## c.395_396del                1.3                0.4                0.6
-## c.257A&gt;G                    1.1                0.4                0.5
-## c.662A&gt;C                    0.8                0.3                0.4
-## c.461_463del                0.6                0.2                0.3
-## c.476C&gt;T                    0.6                0.2                0.3
-## c.773A&gt;G                    0.6                0.2                0.3
-## c.247G&gt;A                    0.4                0.1                0.2
-## c.407G&gt;A                    0.4                0.1                0.2
-## c.316dup                    0.4                0.1                0.2
-## c.397_398del                0.4                0.1                0.2
-## c.-158_83del                0.2                0.1                0.1
-## c.177C&gt;G                    0.2                0.1                0.1
-## c.350T&gt;G                    0.2                0.1                0.1
-## c.757_759del                0.2                0.1                0.1
-## c.-158_83dup                0.2                0.1                0.1
-## c.115C&gt;G                    0.2                0.1                0.1
-## c.214G&gt;T                    0.2                0.1                0.1
-## c.379C&gt;T                    0.2                0.1                0.1
-## c.406C&gt;T                    0.2                0.1                0.1
-## c.434A&gt;G                    0.2                0.1                0.1
-## c.486+2T&gt;A                  0.2                0.1                0.1
-## c.486+2T&gt;C                  0.2                0.1                0.1
-## c.543-2A&gt;G                  0.2                0.1                0.1
-## c.587G&gt;T                    0.2                0.1                0.1
-## c.659A&gt;C                    0.2                0.1                0.1
-## c.715_717del                0.2                0.1                0.1
-## c.765_785del                0.2                0.1                0.1
-## c.768C&gt;G                    0.2                0.1                0.1
-## c.1_11del                   0.2                0.1                0.1
-## c.144G&gt;A                    0.2                0.1                0.1
-## c.299T&gt;G                    0.2                0.1                0.1
-## c.164A&gt;C                    0.2                0.1                0.1
-## c.281C&gt;T                    0.2                0.1                0.1
-## c.248A&gt;G                    0.2                0.1                0.1
-## c.445C&gt;T                    0.2                0.1                0.1
-## c.434A&gt;C                    0.2                0.1                0.1
-##              Expected.Cluster 6 Expected.Cluster 7 Expected.Cluster 8
-## c.794_796del                3.2                0.6                1.0
-## c.395_396del                0.7                0.1                0.2
-## c.257A&gt;G                    0.6                0.1                0.2
-## c.662A&gt;C                    0.5                0.1                0.1
-## c.461_463del                0.4                0.1                0.1
-## c.476C&gt;T                    0.4                0.1                0.1
-## c.773A&gt;G                    0.4                0.1                0.1
-## c.247G&gt;A                    0.2                0.0                0.1
-## c.407G&gt;A                    0.2                0.0                0.1
-## c.316dup                    0.2                0.0                0.1
-## c.397_398del                0.2                0.0                0.1
-## c.-158_83del                0.1                0.0                0.0
-## c.177C&gt;G                    0.1                0.0                0.0
-## c.350T&gt;G                    0.1                0.0                0.0
-## c.757_759del                0.1                0.0                0.0
-## c.-158_83dup                0.1                0.0                0.0
-## c.115C&gt;G                    0.1                0.0                0.0
-## c.214G&gt;T                    0.1                0.0                0.0
-## c.379C&gt;T                    0.1                0.0                0.0
-## c.406C&gt;T                    0.1                0.0                0.0
-## c.434A&gt;G                    0.1                0.0                0.0
-## c.486+2T&gt;A                  0.1                0.0                0.0
-## c.486+2T&gt;C                  0.1                0.0                0.0
-## c.543-2A&gt;G                  0.1                0.0                0.0
-## c.587G&gt;T                    0.1                0.0                0.0
-## c.659A&gt;C                    0.1                0.0                0.0
-## c.715_717del                0.1                0.0                0.0
-## c.765_785del                0.1                0.0                0.0
-## c.768C&gt;G                    0.1                0.0                0.0
-## c.1_11del                   0.1                0.0                0.0
-## c.144G&gt;A                    0.1                0.0                0.0
-## c.299T&gt;G                    0.1                0.0                0.0
-## c.164A&gt;C                    0.1                0.0                0.0
-## c.281C&gt;T                    0.1                0.0                0.0
-## c.248A&gt;G                    0.1                0.0                0.0
-## c.445C&gt;T                    0.1                0.0                0.0
-## c.434A&gt;C                    0.1                0.0                0.0
+## c.445C&gt;T             0         0         0         0         0         1
+## c.434A&gt;C             0         0         0         0         0         0
+##              Cluster 7 Cluster 8 Cluster 9 Cluster 10 Total Expected.Cluster 1
+## c.794_796del         0         0         0          3    27                4.1
+## c.395_396del         0         6         0          0     6                0.9
+## c.257A&gt;G             0         0         0          0     5                0.8
+## c.662A&gt;C             0         0         0          0     4                0.6
+## c.461_463del         0         0         0          0     3                0.5
+## c.476C&gt;T             0         0         0          0     3                0.5
+## c.773A&gt;G             0         0         2          0     3                0.5
+## c.247G&gt;A             0         0         0          0     2                0.3
+## c.407G&gt;A             0         0         0          0     2                0.3
+## c.316dup             1         0         0          0     2                0.3
+## c.397_398del         2         0         0          0     2                0.3
+## c.-158_83del         0         0         0          0     1                0.2
+## c.177C&gt;G             0         0         0          0     1                0.2
+## c.350T&gt;G             0         0         0          0     1                0.2
+## c.757_759del         0         0         0          0     1                0.2
+## c.-158_83dup         0         0         0          0     1                0.2
+## c.115C&gt;G             0         0         0          0     1                0.2
+## c.214G&gt;T             0         0         0          0     1                0.2
+## c.379C&gt;T             0         0         0          0     1                0.2
+## c.406C&gt;T             0         0         0          0     1                0.2
+## c.434A&gt;G             0         0         0          0     1                0.2
+## c.486+2T&gt;A           0         0         0          0     1                0.2
+## c.486+2T&gt;C           0         0         0          0     1                0.2
+## c.543-2A&gt;G           0         0         0          0     1                0.2
+## c.587G&gt;T             0         0         0          0     1                0.2
+## c.659A&gt;C             0         0         0          0     1                0.2
+## c.715_717del         0         0         0          0     1                0.2
+## c.765_785del         0         0         0          0     1                0.2
+## c.768C&gt;G             0         0         0          0     1                0.2
+## c.1_11del            0         0         0          0     1                0.2
+## c.144G&gt;A             0         0         0          0     1                0.2
+## c.299T&gt;G             0         0         0          0     1                0.2
+## c.164A&gt;C             0         0         0          0     1                0.2
+## c.281C&gt;T             0         0         0          0     1                0.2
+## c.248A&gt;G             0         0         0          0     1                0.2
+## c.445C&gt;T             0         0         0          0     1                0.2
+## c.434A&gt;C             1         0         0          0     1                0.2
+##              Expected.Cluster 2 Expected.Cluster 3 Expected.Cluster 4
+## c.794_796del                7.6                5.7                1.9
+## c.395_396del                1.7                1.3                0.4
+## c.257A&gt;G                    1.4                1.1                0.4
+## c.662A&gt;C                    1.1                0.8                0.3
+## c.461_463del                0.8                0.6                0.2
+## c.476C&gt;T                    0.8                0.6                0.2
+## c.773A&gt;G                    0.8                0.6                0.2
+## c.247G&gt;A                    0.6                0.4                0.1
+## c.407G&gt;A                    0.6                0.4                0.1
+## c.316dup                    0.6                0.4                0.1
+## c.397_398del                0.6                0.4                0.1
+## c.-158_83del                0.3                0.2                0.1
+## c.177C&gt;G                    0.3                0.2                0.1
+## c.350T&gt;G                    0.3                0.2                0.1
+## c.757_759del                0.3                0.2                0.1
+## c.-158_83dup                0.3                0.2                0.1
+## c.115C&gt;G                    0.3                0.2                0.1
+## c.214G&gt;T                    0.3                0.2                0.1
+## c.379C&gt;T                    0.3                0.2                0.1
+## c.406C&gt;T                    0.3                0.2                0.1
+## c.434A&gt;G                    0.3                0.2                0.1
+## c.486+2T&gt;A                  0.3                0.2                0.1
+## c.486+2T&gt;C                  0.3                0.2                0.1
+## c.543-2A&gt;G                  0.3                0.2                0.1
+## c.587G&gt;T                    0.3                0.2                0.1
+## c.659A&gt;C                    0.3                0.2                0.1
+## c.715_717del                0.3                0.2                0.1
+## c.765_785del                0.3                0.2                0.1
+## c.768C&gt;G                    0.3                0.2                0.1
+## c.1_11del                   0.3                0.2                0.1
+## c.144G&gt;A                    0.3                0.2                0.1
+## c.299T&gt;G                    0.3                0.2                0.1
+## c.164A&gt;C                    0.3                0.2                0.1
+## c.281C&gt;T                    0.3                0.2                0.1
+## c.248A&gt;G                    0.3                0.2                0.1
+## c.445C&gt;T                    0.3                0.2                0.1
+## c.434A&gt;C                    0.3                0.2                0.1
+##              Expected.Cluster 5 Expected.Cluster 6 Expected.Cluster 7
+## c.794_796del                0.3                2.5                1.3
+## c.395_396del                0.1                0.6                0.3
+## c.257A&gt;G                    0.1                0.5                0.2
+## c.662A&gt;C                    0.0                0.4                0.2
+## c.461_463del                0.0                0.3                0.1
+## c.476C&gt;T                    0.0                0.3                0.1
+## c.773A&gt;G                    0.0                0.3                0.1
+## c.247G&gt;A                    0.0                0.2                0.1
+## c.407G&gt;A                    0.0                0.2                0.1
+## c.316dup                    0.0                0.2                0.1
+## c.397_398del                0.0                0.2                0.1
+## c.-158_83del                0.0                0.1                0.0
+## c.177C&gt;G                    0.0                0.1                0.0
+## c.350T&gt;G                    0.0                0.1                0.0
+## c.757_759del                0.0                0.1                0.0
+## c.-158_83dup                0.0                0.1                0.0
+## c.115C&gt;G                    0.0                0.1                0.0
+## c.214G&gt;T                    0.0                0.1                0.0
+## c.379C&gt;T                    0.0                0.1                0.0
+## c.406C&gt;T                    0.0                0.1                0.0
+## c.434A&gt;G                    0.0                0.1                0.0
+## c.486+2T&gt;A                  0.0                0.1                0.0
+## c.486+2T&gt;C                  0.0                0.1                0.0
+## c.543-2A&gt;G                  0.0                0.1                0.0
+## c.587G&gt;T                    0.0                0.1                0.0
+## c.659A&gt;C                    0.0                0.1                0.0
+## c.715_717del                0.0                0.1                0.0
+## c.765_785del                0.0                0.1                0.0
+## c.768C&gt;G                    0.0                0.1                0.0
+## c.1_11del                   0.0                0.1                0.0
+## c.144G&gt;A                    0.0                0.1                0.0
+## c.299T&gt;G                    0.0                0.1                0.0
+## c.164A&gt;C                    0.0                0.1                0.0
+## c.281C&gt;T                    0.0                0.1                0.0
+## c.248A&gt;G                    0.0                0.1                0.0
+## c.445C&gt;T                    0.0                0.1                0.0
+## c.434A&gt;C                    0.0                0.1                0.0
+##              Expected.Cluster 8 Expected.Cluster 9 Expected.Cluster 10
+## c.794_796del                1.9                0.6                 1.0
+## c.395_396del                0.4                0.1                 0.2
+## c.257A&gt;G                    0.4                0.1                 0.2
+## c.662A&gt;C                    0.3                0.1                 0.1
+## c.461_463del                0.2                0.1                 0.1
+## c.476C&gt;T                    0.2                0.1                 0.1
+## c.773A&gt;G                    0.2                0.1                 0.1
+## c.247G&gt;A                    0.1                0.0                 0.1
+## c.407G&gt;A                    0.1                0.0                 0.1
+## c.316dup                    0.1                0.0                 0.1
+## c.397_398del                0.1                0.0                 0.1
+## c.-158_83del                0.1                0.0                 0.0
+## c.177C&gt;G                    0.1                0.0                 0.0
+## c.350T&gt;G                    0.1                0.0                 0.0
+## c.757_759del                0.1                0.0                 0.0
+## c.-158_83dup                0.1                0.0                 0.0
+## c.115C&gt;G                    0.1                0.0                 0.0
+## c.214G&gt;T                    0.1                0.0                 0.0
+## c.379C&gt;T                    0.1                0.0                 0.0
+## c.406C&gt;T                    0.1                0.0                 0.0
+## c.434A&gt;G                    0.1                0.0                 0.0
+## c.486+2T&gt;A                  0.1                0.0                 0.0
+## c.486+2T&gt;C                  0.1                0.0                 0.0
+## c.543-2A&gt;G                  0.1                0.0                 0.0
+## c.587G&gt;T                    0.1                0.0                 0.0
+## c.659A&gt;C                    0.1                0.0                 0.0
+## c.715_717del                0.1                0.0                 0.0
+## c.765_785del                0.1                0.0                 0.0
+## c.768C&gt;G                    0.1                0.0                 0.0
+## c.1_11del                   0.1                0.0                 0.0
+## c.144G&gt;A                    0.1                0.0                 0.0
+## c.299T&gt;G                    0.1                0.0                 0.0
+## c.164A&gt;C                    0.1                0.0                 0.0
+## c.281C&gt;T                    0.1                0.0                 0.0
+## c.248A&gt;G                    0.1                0.0                 0.0
+## c.445C&gt;T                    0.1                0.0                 0.0
+## c.434A&gt;C                    0.1                0.0                 0.0
 ##              Expected.Total
 ## c.794_796del           27.0
 ## c.395_396del            6.0
@@ -3589,15 +3660,15 @@ clusters</code></pre>
 ## c.248A&gt;G                1.0
 ## c.445C&gt;T                1.0
 ## c.434A&gt;C                1.0</code></pre>
-<pre class="r"><code>clusters %&gt;% .[ , 1:k] %&gt;% chisq.test()</code></pre>
-<pre><code>## Warning in chisq.test(.): Chi-squared approximation may be incorrect</code></pre>
-<pre style="max-height: 100px;"><code>## 
-##  Pearson&#39;s Chi-squared test
-## 
-## data:  .
-## X-squared = 287.39, df = 252, p-value = 0.06206</code></pre>
-<p><br><br />
-<br> <br></p>
+<p><br> For associations with the original HPO terms, the most
+significant variant enrichment exists when cutting the dendrogram at a
+height of k = 10.</p>
+<p>Importantly, the 6 clinical phenotypes associated with c.395_396del
+form a unique cluster (cluster 8), and c.397_398del variants constitute
+2 of the 4 members of cluster 7.<br />
+At the next higher branch level (k= 9), all clinical phenotypes
+associated with c.395_396del and c.397_398del become members of cluster
+7 (8 of 10 members in total). <br> <br></p>
 </div>
 </div>
 </div>
