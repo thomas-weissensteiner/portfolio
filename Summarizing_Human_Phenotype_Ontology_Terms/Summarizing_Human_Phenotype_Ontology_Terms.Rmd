@@ -28,7 +28,7 @@ output:
 knitr::opts_knit$set(root.dir = "C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms")
 knitr::opts_chunk$set (warning = FALSE)
 knitr::opts_chunk$set (tidy = FALSE)
-knitr::opts_chunk$set (attr.output='style="max-height: 100px;"')
+knitr::opts_chunk$set (attr.output='style="max-height: 110px;"')
 ```
 <br>
 <br>  
@@ -541,19 +541,24 @@ knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfo
 * Frameshift variants c.395_396del and c.397_398del appear to be associated with eye abnormalities
 <br>  
 <br>  
-##### 4.2.2. Significance of variant clustering (work in progress)
 
-```{r, Chunk_10, dependson: Chunk_8, warning = TRUE}
+##### 4.2.2. Significance of variant clustering (work in progress)  
+
+In the figures above "cutting" the column dendogram branches at different heights produces clusters of more or less similar phenotypes. The following code chunks analyse whether variants were enriched in any of these clusters. Details of the  clustering with the most significant chi-square statistic are returned. I have not verified whether this is a valid approach. 
+
+```{r, Chunk_10, dependson: Chunk_8, fig.align = "centre"}
 # Chunk 10 > requires executing Chunk 8 < Chunk 7 < Chunk 2 < Chunk 1) #
 
-## fix chisq error
-## display table in html
+## Generate a list of table showing the number of times each variant is present in different clusters, defined by cutting the dendogram at a height “k”
+## Find dendogram height at which the clustering is most significant and return the corresponding cluster table and chi-square statistics
+## Warning in chisq.test(.) : Chi-squared approximation may be incorrect
 
+clusterTables <- list()
+chisqTests <- list()
+chisqTests_pVal <- c()
 
-## Generate a table showing the number of times each variant is present in different clusters, defined by cutting the dendogram at a height “k”
+for (k in 2:(nrow(queryTable)-1)) {
 
-
-k = 8
 for (i in 1:k) {
 	next_cluster <- cutree(rc, k) [hv$colInd] %>%
 		{set_names (., queryTable$cDna[hv$colInd])[as.numeric(.)== i]} %>%
@@ -576,14 +581,36 @@ mutate (Total = rowSums(.)) %>%
 		Expected = apply (., 2, function(x){
 				round(Total*sum(x)/sum(Total), digits = 1)}))
 
-write.csv (clusters, paste0 ("clusters_", k, ".csv"))
+clusterTables[[k]] <- clusters
+chisqTests[[k]] <- clusters %>% .[ , 1:k] %>% chisq.test()
+chisqTests_pVal <- c(chisqTests_pVal, chisqTests[[k]] %>% .$p.value)
+}
 
-clusters
-
-clusters %>% .[ , 1:k] %>% chisq.test()
+chisqTests_pVal %>% log() %>% 
+  plot(x=c(2:(nrow(queryTable)-1)), type = "b", 
+    xlab = "k", ylab = "Cluster log_p-value", 
+    main = paste ("Clustering is most significant when cutting the dendogram at a height of k = ",
+      which.min(chisqTests_pVal)+1), 
+    cex.main = 0.9)
 
 ```
-<br>  
+
+```{r, Chunk_10, dependson: Chunk_10, results='hold'}
+# Chunk 11 > requires executing Chunk 10 < Chunk 8 < Chunk 7 < Chunk 2 < Chunk 1) #
+
+## Output details for the most significant k level
+
+clusterTables[[which.min(chisqTests_pVal)+1]] %>% 
+  write.csv (., paste0 ("clusters_", which.min(chisqTests_pVal)+1, ".csv"))
+chisqTests[[which.min(chisqTests_pVal)+1]]
+clusterTables[[which.min(chisqTests_pVal)+1]]
+
+```
+<br>
+For associations with the original HPO terms, the most significant variant enrichment exists when cutting the dendrogram at a height of k = 10.  
+
+Importantly, the 6 clinical phenotypes associated with c.395_396del form a unique cluster (cluster 8), and c.397_398del variants constitute 2 of the 4 members of cluster 7.  
+At the next higher branch level (k= 9), all clinical phenotypes associated with c.395_396del and c.397_398del become members of cluster 7 (8 of 10 members in total).
 <br> 
 <br>
 
