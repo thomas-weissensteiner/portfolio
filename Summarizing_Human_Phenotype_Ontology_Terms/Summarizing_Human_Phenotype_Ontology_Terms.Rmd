@@ -586,9 +586,9 @@ chisqTests[[k]] <- clusters %>% .[ , 1:k] %>% chisq.test()
 chisqTests_pVal <- c(chisqTests_pVal, chisqTests[[k]] %>% .$p.value)
 }
 
-chisqTests_pVal %>% log() %>% 
+chisqTests_pVal %>% log10() %>% 
   plot(x=c(2:(nrow(queryTable)-1)), type = "b", 
-    xlab = "k", ylab = "Cluster log_p-value", 
+    xlab = "k", ylab = "Cluster log10_p-value", 
     main = paste ("Clustering is most significant when cutting the dendogram at a height of k = ",
       which.min(chisqTests_pVal)+1), 
     cex.main = 0.9)
