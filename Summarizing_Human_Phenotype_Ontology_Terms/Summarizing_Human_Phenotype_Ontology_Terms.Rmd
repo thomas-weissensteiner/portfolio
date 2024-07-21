@@ -156,6 +156,9 @@ queryTable <- variants_sim %>%
 	  select (ID_person, Gender, disease_.other_name., cDna, Protein,
 			Coding_Effect, Clinical_Significance, HPO_Terms)
 
+# Currently not required: add a column with a numeric value for later sorting of variants by nucleotide position
+# queryTable <- queryTable %>% mutate (nt_pos = {.$cDna%>% gsub("c.*\\.", "", .) %>% sub("^(\\D*\\d+).*", "\\1", .) %>% as.numeric})
+  
 newList <- list()
 
 for (i in 1 : nrow (queryTable) ) {
@@ -291,8 +294,6 @@ Visual inspection can indicate variants or variant groups that are associated wi
 
 
 term_sets <- set_names (newList, queryTable$cDna)
-# reorder term_sets according to cDNA nucleotide position (required for alternative heatmap display below)
- term_sets <- term_sets %>% {.[names(.)%>% gsub("c.*\\.", "", .) %>% sub("^(\\D*\\d+).*", "\\1", .) %>% as.numeric %>% order()]}
 
 sim_mat <- get_sim_grid(ontology=hpo, term_sets=term_sets)
 
@@ -313,9 +314,10 @@ Phenotypes of patients with the frameshift variants c.395_396del and c.397_398de
 Another variant associated with semantically similar HPO terms appears to be c.773A>G.
 <br>  
 Alternative heatmap: HPO terms summarised at organ system level, variants ordered according to nucleotide position:  
-```{r, echo=FALSE, out.width="60%",out.heigh = "50%", fig.align = "center"}
-knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_Terms_figs/variants_lvl30_simMat_ntPos.png")
+```{r, echo=FALSE, out.width="100%",out.heigh = "150%", fig.align = "center"}
+knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_Terms_figs/variants_lvl30_simMat_ntPos.pdf")
 ```
+
 <br>  
 This might indicate whether mutations in a specific region of the protein have functional consequences associated with a clinical phenotype. 
 <br>  
@@ -534,7 +536,7 @@ LoF: "Loss of Function" variants (frameshift, splicing mutation, start_loss, non
 <br> 
 <br> 
 Alternative clustering with HPO terms summarised at organ system level: 
-```{r, echo=FALSE, out.width="100%",out.heigh = "100%", fig.align = "left"}
+```{r, echo=FALSE, out.width="80%",out.heigh = "150%", fig.align = "left"}
 knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_terms_figs/variants_lvl3_symptoms.pdf")
 ```
 <br>  
@@ -542,16 +544,18 @@ knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfo
 <br>  
 <br>  
 
-##### 4.2.2. Significance of variant clustering (work in progress)  
+##### 4.2.2. Identifying (groups of) variants that share significantly similar associations at a chosen level of the HPO 
 
-In the figures above "cutting" the column dendogram branches at different heights produces clusters of more or less similar phenotypes. The following code chunks analyse whether variants were enriched in any of these clusters. Details of the  clustering with the most significant chi-square statistic are returned. I have not verified whether this is a valid approach. 
+In the figures above "cutting" the column dendogram branches at different heights produces clusters of more or less similar phenotypes. The following code chunks analyse whether variants were enriched in any of these clusters.
+First, the branching height k is determined at which the distribution of variants diverges most significantly from the hypothesis is that each variant has an equal probability to be a member of any cluster. Next, a table of variant clusters and simulated p-value are returned for this value of k. In the current implementation, visual inspection of the cluster table can be used to identify variants which  
+ 
 
 ```{r, Chunk_10, dependson: Chunk_8, fig.align = "centre"}
 # Chunk 10 > requires executing Chunk 8 < Chunk 7 < Chunk 2 < Chunk 1) #
 
 ## Generate a list of table showing the number of times each variant is present in different clusters, defined by cutting the dendogram at a height “k”
-## Find dendogram height at which the clustering is most significant and return the corresponding cluster table and chi-square statistics
-## Warning in chisq.test(.) : Chi-squared approximation may be incorrect
+## Find the dendogram height at which the clustering is most significant and return the corresponding table of clusters
+# A “goodness-of-fit test” is performed based on simulations, and under the null hypothesis that the carriers of each variant are evenly distributed among the clusters
 
 clusterTables <- list()
 chisqTests <- list()
@@ -559,30 +563,22 @@ chisqTests_pVal <- c()
 
 for (k in 2:(nrow(queryTable)-1)) {
 
+clusters <-  tibble(cDna = unique (queryTable$cDna))
 for (i in 1:k) {
 	next_cluster <- cutree(rc, k) [hv$colInd] %>%
 		{set_names (., queryTable$cDna[hv$colInd])[as.numeric(.)== i]} %>%
 		names() %>%
 		table() %>%
-		enframe(name = "Variant", value = paste ("Cluster", i))
-		if (i > 1) {  
-			clusters <- full_join (clusters, next_cluster, by = "Variant")
-			} else { clusters <- next_cluster	
-		}
+		enframe(name = "cDna", value = paste ("Cluster", i))
+	clusters <- full_join (clusters, next_cluster, by = "cDna")
 	}
 
-clusters <- clusters %>% 
-column_to_rownames (., var="Variant") %>% 
-replace(., is.na(.), 0) %>% 
-mutate (Total = rowSums(.)) %>%
-.[order(.$Total, decreasing= T ), ] %>%
-#	rbind (., Clusters_total=colSums(.) )
-	mutate (., 
-		Expected = apply (., 2, function(x){
-				round(Total*sum(x)/sum(Total), digits = 1)}))
+clusters <- clusters %>% column_to_rownames (., var="cDna") %>% 
+  replace(., is.na(.), 0) %>% 
+  mutate (prob = rowSums(.)/k)
 
 clusterTables[[k]] <- clusters
-chisqTests[[k]] <- clusters %>% .[ , 1:k] %>% chisq.test()
+chisqTests[[k]] <- clusters[ , 1:k] %>% chisq.test(simulate.p.value = T)
 chisqTests_pVal <- c(chisqTests_pVal, chisqTests[[k]] %>% .$p.value)
 }
 
@@ -607,10 +603,8 @@ clusterTables[[which.min(chisqTests_pVal)+1]]
 
 ```
 <br>
-For associations with the original HPO terms, the most significant variant enrichment exists when cutting the dendrogram at a height of k = 10.  
-
-Importantly, the 6 clinical phenotypes associated with c.395_396del form a unique cluster (cluster 8), and c.397_398del variants constitute 2 of the 4 members of cluster 7.  
-At the next higher branch level (k= 9), all clinical phenotypes associated with c.395_396del and c.397_398del become members of cluster 7 (8 of 10 members in total).
+For associations with the original HPO terms, the most significant variant enrichments exist when cutting the dendrogram at a height of k = 5. Interestingly (in these simulated data!), all phenotypes associated with c.395_396del and c.397_398del variants become members of the same cluster (cluster 5), constituting 8 of its 10 members.  
+At the next most significant branch level, k= 10 (p-value = 0.006), c.395_396del carriers comprise a unique group (cluster 8), while c.397_398del carriers constitute 2 of the 4 members of cluster 7.
 <br> 
 <br>
 
