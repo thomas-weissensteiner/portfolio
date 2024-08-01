@@ -29,6 +29,11 @@ knitr::opts_knit$set(root.dir = "C:/Users/ThomasWeissensteiner/OneDrive/Document
 knitr::opts_chunk$set (warning = FALSE)
 knitr::opts_chunk$set (tidy = FALSE)
 knitr::opts_chunk$set (attr.output='style="max-height: 110px;"')
+
+# R package for rendering tables in HTML format (kableExtra rather than kable is required for R 4.3.0)
+
+library(kableExtra)
+
 ```
 <br>
 <br>  
@@ -42,13 +47,16 @@ I wrote this script for a paper describing a rare disease caused by genetic vari
 
 The [Human Phenotype Ontology (HPO)](https://hpo.jax.org/about) provides an international logical standard to describe and computationally analyse phenotypes characterising human disease (2). Clinical records of 86 patients had been annotated with HPO terms. Of 213 different terms, 31 has been used in five or more patients, and almost all of these referred to nervous system or muscoskeletal symptoms. However, the specificity of the terms varied between patients, and in some cases specific as well as more general terms which included the same symptom(s) had been used.
 
-The script that I wrote served three purposes: 
+The scripts that I wrote served the following purposes: 
 
 1. translating the HPO term IDs of the patient records into HPO term names
-2. replacing HPO terms of variable specificity with HPO terms at a defined, more general level
-3. generating publication-ready plots of HPO term frequencies. 
+2. summarising HPO terms of variable specificity by replacing them with HPO terms at a defined, more general level (section 3.1)
+3. generating publication-ready plots of HPO term frequencies (section 3.2)
+4. exploring whether summarising HPO terms can help to identify (groups of) variants associated with distinct clinical phenotypes, 
+and comparing this method with variant clustering based on HPO terms weighted for information content (section 4)
 
-As major result, **_summarising HPO terms at the organ system level_** revealed that 23 patients had ocular symptoms, making the **_eye the third most often affected organ in CLN6 disease_**. This was hidden by the heterogeneity of the original HPO annotations, and had not been noted in previous publications.  
+As a major result, **_summarising HPO terms at the organ system level_** revealed that 23 patients had ocular symptoms, making the **_eye the third most often affected organ in CLN6 disease_**. This was hidden by the heterogeneity of the original HPO annotations, and had not been noted in previous publications.  
+
 <br>  
 
 #### 1.2. How the script summarises Human Phenotype Ontology terms  
@@ -74,22 +82,16 @@ Indexing is based on the R package ontologyIndex which is part of the ontologyX 
 <br>  
 <br>  
 
-### 2. Data structure
+### 2. Code for translating HPO IDs to HPO names, and summarising  ontology terms at a common less specific level  
+<br>  
+
+#### 2.1. Required R packages, uploading of ontology information and example data
 
 The input file was a tab-delimited csv document. The clinical phenotype of each patient (last column "HPO_Terms") was represented by a string of HPO ID numbers, separated by a comma without spaces.  
 Data in the example file are for illustration and not the actual data of the study (1), except for HPO term frequencies.  
 
-```{r Data_example, echo=FALSE}
-read.delim ("https://raw.githubusercontent.com/thomas-weissensteiner/portfolio/main/Summarizing_Human_Phenotype_Ontology_Terms/variants_simulated.csv", quote = "", nrows = 2)
-```
-<br> 
-<br>  
-
-### 3. Code for translating HPO IDs to HPO names, and summarising  ontology terms at a common less specific level
-
-
 ```{r Chunk_1, message = FALSE}
-# Chunk 1 #
+
 ## Load required R libraries and download HPO data
 
 library(tidyverse)
@@ -100,13 +102,26 @@ library (ontologyIndex)
 
 hpo <- get_OBO ("http://purl.obolibrary.org/obo/hp.obo")
 
+
 ## Get example data file
 
 variants_sim <- read.delim("https://raw.githubusercontent.com/thomas-weissensteiner/portfolio/main/Summarizing_Human_Phenotype_Ontology_Terms/variants_simulated.csv", quote = "")
+
+# R package "kableExtra" was used to add a horizontal scroll box, making the wide table more readable 
+
+variants_sim[c(1,44,97), ] %>% kable(., "html") %>% scroll_box(width = "100%")
+
+# Clean data
+
+variants_sim <- variants_sim %>% 
+  filter (Allele_zygosity == "Homozygous" & !HPO_Terms %in% c(NA, "-1", "")) %>% 
+	select (ID_person, Gender, cDna, Protein, Coding_Effect, Clinical_Significance, HPO_Terms)
 ```
+<br> 
 <br>  
 
-#### 3.1. Contingency table of patient IDs and HPO terms summarised at a defined ontology term level
+
+#### 2.2. Contingency table of patient IDs and HPO terms summarised at a defined ontology term level
  
 The "findNode" function replaces an HPO term in the original case annotations which new term(s) at the chosen level
 Messages are generated whenever  
@@ -148,21 +163,14 @@ findNode <- function (x, termIndex_rank, excludeBranches) {
  }
 }
 
-## Read and clean data
-#  Requires a tab but not comma-delimited cvs file
-queryTable <- variants_sim %>%	
-	  filter (Allele_zygosity == 
-	 		"Homozygous" & !HPO_Terms %in% c(NA, "-1", "")) %>%
-	  select (ID_person, Gender, disease_.other_name., cDna, Protein,
-			Coding_Effect, Clinical_Significance, HPO_Terms)
 
 # Currently not required: add a column with a numeric value for later sorting of variants by nucleotide position
-# queryTable <- queryTable %>% mutate (nt_pos = {.$cDna%>% gsub("c.*\\.", "", .) %>% sub("^(\\D*\\d+).*", "\\1", .) %>% as.numeric})
+# variants_sim <- variants_sim %>% mutate (nt_pos = {.$cDna%>% gsub("c.*\\.", "", .) %>% sub("^(\\D*\\d+).*", "\\1", .) %>% as.numeric})
   
 newList <- list()
 
-for (i in 1 : nrow (queryTable) ) {
-queryTerms <- select (queryTable [i, ], HPO_Terms) %>%
+for (i in 1 : nrow (variants_sim) ) {
+queryTerms <- select (variants_sim [i, ], HPO_Terms) %>%
 separate_rows (., "HPO_Terms", sep=",")
     
 newTerms <- apply (queryTerms, 1, findNode, termIndex_rank, infoType)
@@ -183,7 +191,8 @@ termOrder <- newList %>% lapply (., unlist)%>% lapply (., unique) %>% unlist %>%
 
 # “newTable” stores cases and their new annotations in binary format (1: new HPO term was found at least once, 0: term and its descendants are absent)
 
-newTable <- tibble (queryTable$ID_person)
+# newTable <- tibble (variants_sim$ID_person)
+newTable <- variants_sim %>% select(ID_person, cDna)
 
 for (i in 1 : length (termOrder)) {
 	newTable <-
@@ -198,7 +207,7 @@ for (i in 1 : length (termOrder)) {
 # Change column names from HPO identifiers to HPO names
 
 termOrder <- names(termOrder) %>% lapply (., FUN=function (x) { hpo$name[[x]]} ) %>% unlist
-newTable <- set_names(newTable, c("ID_person", termOrder))
+newTable <- set_names(newTable, c("ID_person", "cDna", termOrder))
 
 
 # Optional: remove level 3 terms that are not an organ system abnormality, e.g. neoplasm or mode of inheritance
@@ -220,10 +229,10 @@ head (newTable)
 ```
 <br>  
 
-#### 3.2. Barchart of the most frequent HPO terms, summarised at a different levels
+#### 2.3. Barchart of the most frequent HPO terms, summarised at a different levels
 <br>  
 
-##### 3.2.1. HPO terms used in the original case annotations suggest the 10 most frequent diagnoses comprise nervous and muskoskeletal system symptoms  
+##### 2.3.1. HPO terms used in the original case annotations suggest the 10 most frequent diagnoses comprise nervous and muskoskeletal system symptoms  
 ```{r Chunk_3, dependson: Chunk_2}
 # Chunk 3 requires executing Chunk 2 < Chunk 1 #
 
@@ -231,7 +240,7 @@ head (newTable)
 #  summary of HPO term frequencies is generated by newTable %>% ... colSums()  %>% enframe()
 #   n sets the number of most frequent terms to be shown, default is slice_head (n=10)   
 
-newTable %>% colSums() %>% enframe() %>%
+newTable %>% select(!cDna) %>% colSums() %>% enframe() %>%
 	slice_head (n=10) %>% 
   ggplot(., aes(x=factor(name, levels = name %>% rev()), y=value)) +
 	geom_bar(stat="identity") +
@@ -245,7 +254,7 @@ newTable %>% colSums() %>% enframe() %>%
 The plot shows the 10 most frequent HPO terms in the original data, 203 terms with lower frequency were not included. This figure resembles [figure 3](https://media.springernature.com/full/springer-static/image/art%3A10.1186%2Fs13023-022-02288-8/MediaObjects/13023_2022_2288_Fig3_HTML.png) in (1).
 <br>  
 <br>  
-##### 3.2.2. Frequency of eye abnormalities was masked by the high specificity and heterogeneity of the original HPO terms used for describing ocular symptoms in the patient records
+##### 2.3.2. Frequency of eye abnormalities was masked by the high specificity and heterogeneity of the original HPO terms used for describing ocular symptoms in the patient records
 
 Summarising HPO terms at the organ system level (termIndex_rank = 3) shows that the eye is the third most commonly affected organ:  
 ![](C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_Terms_figs/rank3_caseNumbers)  
@@ -258,7 +267,7 @@ Shown are the 10 most frequent summarised terms, 4 terms with lower frequency we
 <br>  
 <br>  
 
-### 4.  Exploring associations between gene variants and phenotypes at different HPO term levels 
+### 3.  Exploring associations between gene variants and phenotypes at different HPO term levels 
 <br>  
 
 This section contains unpublished work that did not contribute to the CLN6 paper (1). I used two approaches for exploring associations between genetic variants and clinical diagnoses:
@@ -272,7 +281,7 @@ Therefore, I tried a complementary method that tests for association with summar
 The following examples are purely illustrative and do not correspond to results obtained with the actual patient data.  
 <br>  
 
-#### 4.1. Identifying variants associated with semantically similar clinical phenotypes
+#### 3.1. Identifying variants associated with semantically similar clinical phenotypes
 
 ```{r Chunk_4, message = FALSE}
 # Chunk 4 #
@@ -281,7 +290,7 @@ library(ontologySimilarity)
 ```
 <br>  
 
-##### 4.1.1. Heatmaps for exploring variant clustering
+##### 3.1.1. Heatmaps for exploring variant clustering
 
 Visual inspection can indicate variants or variant groups that are associated with a similar disease phenotype. Original annotations rather than the summarised HPO terms should be used.
 
@@ -293,7 +302,7 @@ Visual inspection can indicate variants or variant groups that are associated wi
 ## Generate a heatmap for genetic variants, clustered by disease phenotype displayed by their carriers (semantic similarity of sets of HPO terms)
 
 
-term_sets <- set_names (newList, queryTable$cDna)
+term_sets <- set_names (newList, variants_sim$cDna)
 
 sim_mat <- get_sim_grid(ontology=hpo, term_sets=term_sets)
 
@@ -322,7 +331,7 @@ knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfo
 This might indicate whether mutations in a specific region of the protein have functional consequences associated with a clinical phenotype. 
 <br>  
 <br>  
-##### 4.1.2. Similarity and its p-value for HPO terms associated with selected variant groups
+##### 3.1.2. Similarity and its p-value for HPO terms associated with selected variant groups
 
 Based on the original HPO annotations, variant group c.395_396del and c.397_398del and variant c.773A>G are associated with significantly similar phenotypes, whereas the clinical presentation of CLN6 disease overall ("All") is not significantly homogenous.
 
@@ -344,10 +353,10 @@ get_similarityTbl <- function(x) {
     
     if (groupName == "All") {
         group_index <- 1:nrow(sim_mat)
-        n <- nrow(queryTable)
+        n <- nrow(variants_sim)
     } else {
         group_index <- which(row.names(sim_mat) %in% unlist(group_variants[[x]]))
-        n <- sum(queryTable$cDna %in% unlist(group_variants[[x]]))
+        n <- sum(variants_sim$cDna %in% unlist(group_variants[[x]]))
     }
     
     if (length(group_index) < 2) {
@@ -373,10 +382,10 @@ map_df(seq_along(group_variants), get_similarityTbl)
 ```
 <br>  
 
-#### 4.2. Exploring associations between genetic variants and specific clinical symptoms
+#### 3.2. Exploring associations between genetic variants and specific clinical symptoms
 <br>  
 
-##### 4.2.1. Clustering with summarized HPO terms 
+##### 3.2.1. Clustering with summarized HPO terms 
 
 ```{r, CHunk_7, message = FALSE}
 # Chunk 7 #
@@ -392,7 +401,7 @@ library(RColorBrewer)
 
 ## This code is not intended for generating the final plot but rather dendograms of patient IDs and summarised HPO terms
 # The reason is that the distance matrix requires unique column names (provided by the patient IDs)
-# Patient IDs are the replaced with variant names (or any other variable from queryTable) afterwards
+# Patient IDs are the replaced with variant names (or any other variable from variants_sim) afterwards
 
 
 ## Choose methods for distance and clustering methods applied to columns and rows
@@ -400,7 +409,7 @@ library(RColorBrewer)
 # Different methods for distance and clustering of person IDs (y - axis) can be explored by changing the "#" ("ward" and "average" should perform best for sparse matrices)
 
 
-rd <- newTable %>% 
+rd <- newTable %>% select(!cDna) %>% 
 	 dist(., method= "euclidean")
 # Change "#" to pick an alternative method for distance of x-axis values
     # dist(., method = # "euclidean")^2
@@ -422,7 +431,7 @@ rc<-hclust(rd, method =    "ward.D"
                       # "centroid"
                       )
 
-cd<- newTable %>% 
+cd<- newTable %>% select(!cDna) %>% 
 	t() %>%
 	  dist(., method = "euclidean")
 # Change "#" to pick an alternative method for distance of y-axis values
@@ -448,7 +457,7 @@ cc<-hclust(cd, method =   "ward.D"
 
 ##  Generate the dendrogram
 
-hv <- newTable %>%
+hv <- newTable %>% select(!cDna) %>% 
     data.matrix () %>% t() %>%
     heatmap.2(., scale="none",
             Rowv=as.dendrogram(cc),
@@ -459,7 +468,12 @@ Colv=as.dendrogram(rc),
 
 ## Summarise "loss of function" (LoF) coding effects
 
-queryTable <- queryTable %>% mutate (LoF_status = Coding_Effect %>% str_replace_all (., c("Frameshift"="LoF", "Start_loss"="LoF", "Nonsense"="LoF", "Splicing_mutation"="LoF", "Effect_unknown"="?")))
+variants_sim <- variants_sim %>% mutate (LoF_status = Coding_Effect) %>% 
+  mutate (LoF_status = case_when (
+          LoF_status %in% c("Frameshift", "Start loss", "Nonsense", "Splicing mutation") ~ "LoF", 
+          LoF_status == "Effect unknown" ~"?",
+          .default = as.character (LoF_status) )
+          )
 
 
 ## Variable to replace patient IDs on the x-axis
@@ -468,13 +482,13 @@ queryTable <- queryTable %>% mutate (LoF_status = Coding_Effect %>% str_replace_
 xVar <- "cDna"
       # "LoF_status"
 
-xVar <- pull (queryTable, xVar)
-new_labCol <-rep('', nrow(queryTable))
+xVar <- pull (variants_sim, xVar)
+new_labCol <-rep('', nrow(variants_sim))
 new_labCol[hv$colInd[order(xVar)]] <-	
 				xVar[hv$colInd[order(xVar)]]
 
 # Alternative x-axis variable: LoF status
-# new_labCol[hv$colInd[order(queryTable$LoF_status)]] <-			queryTable$LoF_status[hv$colInd[order(queryTable$LoF_status)]]
+# new_labCol[hv$colInd[order(variants_sim$LoF_status)]] <- variants_sim$LoF_status[hv$colInd[order(variants_sim$LoF_status)]]
 
 
 ## Variable to be displayed as column side colors
@@ -485,13 +499,11 @@ ColSideVar <-  "LoF_status"
               # "Clinical_Significance"
               # "Gender"
 
-ColSideVar <- pull (queryTable, ColSideVar)
+ColSideVar <- pull (variants_sim, LoF_status)
 
 ColSideColors <- brewer.pal (unique(ColSideVar) %>% length(), "Set1") %>%
 				factor() %>%
-				.[match (ColSideVar, unique(ColSideVar)
-						%>% sort()
-				)] %>% as.character()
+				.[match (ColSideVar, unique(ColSideVar) %>% sort() )] %>% as.character()
 
 ```
 <br>  
@@ -504,7 +516,7 @@ ColSideColors <- brewer.pal (unique(ColSideVar) %>% length(), "Set1") %>%
 
 par(cex.main=1)
 
-newTable %>%
+newTable %>% select(!cDna) %>% 
     data.matrix () %>% t() %>%
     heatmap.2(., scale="none",
               Rowv=as.dendrogram(cc), 	
@@ -536,7 +548,8 @@ LoF: "Loss of Function" variants (frameshift, splicing mutation, start_loss, non
 <br> 
 <br> 
 Alternative clustering with HPO terms summarised at organ system level: 
-```{r, echo=FALSE, out.width="80%",out.heigh = "150%", fig.align = "left"}
+
+```{r, echo=FALSE, out.width="100%",out.heigh = "100%"}
 knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfolio/Summarizing_Human_Phenotype_Ontology_Terms/Summarizing_Human_Phenotype_Ontology_terms_figs/variants_lvl3_symptoms.pdf")
 ```
 <br>  
@@ -544,9 +557,9 @@ knitr::include_graphics("C:/Users/ThomasWeissensteiner/OneDrive/Documents/portfo
 <br>  
 <br>  
 
-##### 4.2.2. Identifying (groups of) variants that share significantly similar associations at a chosen level of the HPO 
+##### 3.2.2. Identifying (groups of) variants that are associated with the same HPO terms, summarized at different HPO levels  
 
-In the figures above "cutting" the column dendogram branches at different heights produces clusters of more or less similar phenotypes. The following code chunks analyse whether variants were enriched in any of these clusters.
+In the figures above "cutting" the column dendogram branches at different heights produces groups of patients with more or less similar sets of clinical symptoms. The following code chunks analyse whether variants were enriched in any of these clusters.
 First, the branching height k is determined at which the distribution of variants diverges most significantly from the hypothesis is that each variant has an equal probability to be a member of any cluster. Next, a table of variant clusters and simulated p-value are returned for this value of k. In the current implementation, visual inspection of the cluster table can be used to identify variants which  
  
 
@@ -561,12 +574,12 @@ clusterTables <- list()
 chisqTests <- list()
 chisqTests_pVal <- c()
 
-for (k in 2:(nrow(queryTable)-1)) {
+for (k in 2:(nrow(variants_sim)-1)) {
 
-clusters <-  tibble(cDna = unique (queryTable$cDna))
+clusters <-  tibble(cDna = unique (variants_sim$cDna))
 for (i in 1:k) {
 	next_cluster <- cutree(rc, k) [hv$colInd] %>%
-		{set_names (., queryTable$cDna[hv$colInd])[as.numeric(.)== i]} %>%
+		{set_names (., variants_sim$cDna[hv$colInd])[as.numeric(.)== i]} %>%
 		names() %>%
 		table() %>%
 		enframe(name = "cDna", value = paste ("Cluster", i))
@@ -578,12 +591,12 @@ clusters <- clusters %>% column_to_rownames (., var="cDna") %>%
   mutate (prob = rowSums(.)/k)
 
 clusterTables[[k]] <- clusters
-chisqTests[[k]] <- clusters[ , 1:k] %>% chisq.test(simulate.p.value = T)
+chisqTests[[k]] <- clusters[ , 1:k] %>% chisq.test(simulate.p.value = T, p = .$prob, rescale.p = T)
 chisqTests_pVal <- c(chisqTests_pVal, chisqTests[[k]] %>% .$p.value)
 }
 
 chisqTests_pVal %>% log10() %>% 
-  plot(x=c(2:(nrow(queryTable)-1)), type = "b", 
+  plot(x=c(2:(nrow(variants_sim)-1)), type = "b", 
     xlab = "k", ylab = "Cluster log10_p-value", 
     main = paste ("Clustering is most significant when cutting the dendogram at a height of k = ",
       which.min(chisqTests_pVal)+1), 
@@ -603,12 +616,15 @@ clusterTables[[which.min(chisqTests_pVal)+1]]
 
 ```
 <br>
-For associations with the original HPO terms, the most significant variant enrichments exist when cutting the dendrogram at a height of k = 5. Interestingly (in these simulated data!), all phenotypes associated with c.395_396del and c.397_398del variants become members of the same cluster (cluster 5), constituting 8 of its 10 members.  
-At the next most significant branch level, k= 10 (p-value = 0.006), c.395_396del carriers comprise a unique group (cluster 8), while c.397_398del carriers constitute 2 of the 4 members of cluster 7.
+For associations with the original HPO terms, the most significant variant enrichments exist when cutting the dendrogram at a height of k = 5. Here, all phenotypes associated with c.395_396del and c.397_398del variants become members of the same cluster (cluster 5), constituting 8 of its 10 members. At the next most significant branch level, k= 10 (p-value = 0.006), c.395_396del carriers comprise a unique group (cluster 8), while c.397_398del carriers constitute 2 of the 4 members of cluster 7. 
+
+These result are consistent with the observations in section 4.1. which were made using information-content weighted HPO terms.   
+
+Summarizing HPO terms at different levels did not affect the p-value of the most significant clustering in most cases. However, it reduced significance for HPO levels 3, 4, 6, 11 and 15 (not shown).
 <br> 
 <br>
 
-### 5. References
+### 4. References
   
 (1) [Clinical and genetic characterization of a cohort of 97 CLN6 patients tested at a single center](https://doi.org/10.1186/s13023-022-02288-8)
 Rus CM, **Weissensteiner T**, Pereira C, ..., Beetz C.
