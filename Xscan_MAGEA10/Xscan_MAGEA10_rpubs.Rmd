@@ -1013,11 +1013,18 @@ With the above exception, few side-by-side comparisons of these methods seem to 
 
 An interesting alternative to Biostrings for peptide matching would have been the [AhoCorasickTrie](https://cran.r-project.org/web/packages/AhoCorasickTrie/AhoCorasickTrie.pdf) package. Its algorithm has been shown to yield much faster results when searching for exact matches. 
 
-Time could also be saved by omitting in the proteome search any peptides containing one of the over 56 million 6-mer sequences that are known to be absent from the human transcriptome ^13^. Unfortunately, a complete list of these so-called human "null-peptides" was not easily obtainable from public sources.
+Time could also be saved by omitting from the proteome search any peptides containing 6-mer sequences that are known to be absent from the human transcriptome ^13^. Unfortunately, a complete list of these >56 million so-called human "null-peptides" was not easily obtainable from public sources.
 <br>
 <br>  
 
-### 4. References  
+### 4. Citation
+<br>
+Please quote as:
+Weissensteiner, Thomas.  Computing T-Cell Receptor Recognition Motifs and Their Matches in the Human Proteome. RPubs, 15 Sept. 2024. https://rpubs.com/thomas-weissensteiner/1221376.
+<br>
+<br>
+
+### 5. References  
 <br>
 
 ^1^ Identification of a Titin-derived HLA-A1-presented peptide as a cross-reactive target for engineered MAGE A3-directed T cells  
@@ -1076,7 +1083,7 @@ Fonseca AF, Antunes DA. Front Immunol. 2023 Jun 12;14:1142573
 <br>
 <br>
 
-### Appendix: Optimizing the number of cores for parallel computing
+### 6. Appendix: Optimizing the number of cores for parallel computing
 <br>
 
 
