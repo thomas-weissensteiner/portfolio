@@ -1,8 +1,10 @@
-This folder contains examples of R scripts that I used for data analyses and visualisation in published articles.
+This subfolders contain examples of R scripts that I used for data analyses and visualisation in published articles, and for a monthly visualisation challenge organised by the Visualisation Special Interest Group of Statisticians in the Pharmaceutical Industry (VSI-PSI).
 
-Each project has a folder with documents explaining background, aims, and code:   
-* the html version is best downloaded and viewed locally to properly render the page    
-* the rmd version can be downloaded and opened locally in R to edit and run the code
+The enclosed documents include: 
+* rmd files with executable code
 * if required
-  *   example data files
-  *   additional images for the html output, in a subfolder named projectFolderName_figs
+  -   example data files
+  -   a subfolder with additional images for the html output
+* an html version (best downloaded and viewed locally)
+* alternatively, rendered hmtl versions can be found at https://rpubs.com/thomas-weissensteiner/1261902  
+
