@@ -7,5 +7,5 @@ The enclosed documents include:
   -   a subfolder with additional images for the html output
 * an html version (best downloaded and viewed locally)
   
-Alternatively, rendered hmtl versions can be found at https://rpubs.com/thomas-weissensteiner/1261902  
+Alternatively, rendered hmtl versions can be found at https://rpubs.com/thomas-weissensteiner/
 
