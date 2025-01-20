@@ -1,4 +1,4 @@
-This subfolders contain examples of R scripts that I used for data analyses and visualisation in published articles, and for a monthly visualisation challenge organised by the Visualisation Special Interest Group of Statisticians in the Pharmaceutical Industry (VSI-PSI).
+The folders contain R scripts that I wrote for data analyses and visualisation in published articles, and for a monthly visualisation challenge organised by the Visualisation Special Interest Group of Statisticians in the Pharmaceutical Industry (VSI-PSI).
 
 The enclosed documents include: 
 * rmd files with executable code
