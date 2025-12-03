@@ -106,6 +106,8 @@ This file runs entirely locally in your browser. No data is sent to any server, 
 - Try using Chrome or Firefox for best performance
 - Reduce the number of visible categories if the graph feels slow
 
-## Credits
+## Credits and copyright
 
-Created by Thomas Weissensteiner 2025
+Christmas Customs Graph © 2025 by Thomas Weissensteiner is licensed under 
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+https://fairregister.net/works/RC-FAREG-8027120004-4
